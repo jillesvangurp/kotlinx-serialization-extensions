@@ -1,29 +1,10 @@
 # JsonDsl
 
-This is an opinionated template for creating kotlin multi platform library projects.
+Some simple extensions for kotlinx serialization.
 
-This works for me and might help you bootstrap your kotlin projects.
+- DEFAULT_JSON and DEFAULT_PRETTY_JSON Json configurations with some sane defaults. The actual defaults in kotlinx.serialization ae wrong for anyone looking to implement forward compatible APIs
+- Some extension functions on various things.
 
-## Batteries included
-
-My goal with this is to waste less time setting up new projects. Kotlin multiplatform can be a bit fiddly to get going with and there are a lot of things that I want to add to projects. This gets me there with minimal fiddling.
-
-- Gradle wrapper with recent version of gradle & kts dialect
-- [ktfmt](https://github.com/facebook/ktfmt) - Code style is enforced with ktfmt. A matching .editorconfig is included. The style is Kotlin's [official style](kotlinlang.org/docs/coding-conventions.html). Tip, configure your IDE to format on save.
-- [Refresh versions plugin](https://splitties.github.io/refreshVersions/) - Great way to manage dependencies and stay on top of updates.
-- [kotlin4example](https://github.com/jillesvangurp/kotlin4example) integrated to generate the readme and any other documentation you are going to write. This is all driven via the tests.
-- Some dependencies for testing (junit, kotest-assertions, etc.) and test setup for junit
-- generic publish script that tags and publishes
-- Github action that builds your stuff generated using [github-workflows-kt](https://github.com/typesafegithub/github-workflows-kt). Setup to cache gradle and konan related files to speed up your builds.
-- LICENSE file (MIT)
-
-## Usage & project create checklist
-
-- [ ] Go to Github and push the "Use this template" button. This will create a new project based on this template
-- [ ] Fix your project name by changing `rootProject.name = "my-new-kmp-project"` in settings.gradle.kts. Override the group name in gradle.properties
-- [ ] Review default maven repo for releases and other things in build.gradle.kts
-- [ ] Update copyright file
-- [ ] Start writingb your own README.md by modifying the code that generates it
 
 ## Gradle
 
@@ -46,26 +27,28 @@ And then you can add the dependency:
 
 ```kotlin
     // check the latest release tag for the latest version
-    implementation("com.jillesvangurp:my-new-kmp-project:1.x.y")
+    implementation("com.jillesvangurp:kotlinx-serialization-extensions:1.x.y")
 ```
 
-## Example
+## Example usage
 
 The main feature of [kotlin4example](https://github.com/jillesvangurp/kotlin4example) is of course integrating code samples into your documentation.   
 
-### Hello World
+### Json
 
 ```kotlin
-println("Hello World!") 
+println( DEFAULT_JSON.encodeToString(Foo("foo")))
+println( DEFAULT_PRETTY_JSON.encodeToString(Foo("foo")))
 ```
 
-And you can actually grab the output and show it in another code block:
-
 ```text
-Hello World!
+{"bar":"foo"}
+{
+  "bar": "foo"
+}
 ```
 
 ## Multi platform
 
-This is a Kotlin multi platform library that should work on most  kotlin platforms (jvm, js, ios, android, etc). Wasm will be added later, after Kotlin 2.0 stabilizes.
+This is a Kotlin multi platform library that should work on most  kotlin platforms (jvm, js, ios, android, wasm, etc). 
 

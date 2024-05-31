@@ -4,13 +4,18 @@ import com.jillesvangurp.jsondsl.*
 import com.jillesvangurp.kotlin4example.SourceRepository
 import java.io.File
 import kotlin.test.Test
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.encodeToJsonElement
+import serializationext.DEFAULT_JSON
+import serializationext.DEFAULT_PRETTY_JSON
 
 const val githubLink = "https://github.com/formation-res/pg-docstore"
 
 val sourceGitRepository =
     SourceRepository(
         repoUrl = githubLink,
-        sourcePaths = setOf("src/commonMain/kotlin", "src/commonTest/kotlin", "src/jvmTest/kotlin")
+        sourcePaths = setOf("src/commonMain/kotlin", "src/commonTest/kotlin", "src/jvmTest/kotlin"),
     )
 
 class ReadmeGenerationTest {
@@ -24,7 +29,7 @@ class ReadmeGenerationTest {
 
         """.trimIndent().trimMargin() +
                     "\n\n" +
-                    readmeMd.value
+                    readmeMd.value,
             )
     }
 }
@@ -33,21 +38,20 @@ val readmeMd =
     sourceGitRepository.md {
         includeMdFile("intro.md")
 
-        section("Example") {
+        section("Example usage") {
             +"""
             The main feature of [kotlin4example](https://github.com/jillesvangurp/kotlin4example) is of course integrating code samples into your documentation.   
         """
                 .trimIndent()
-            subSection("Hello World") {
-                example { println("Hello World!") }
-                    .let {
-                        +"""
-                   And you can actually grab the output and show it in another code block:
-                """
-                            .trimIndent()
-
-                        mdCodeBlock(it.stdOut, type = "text")
-                    }
+            subSection("Json") {
+                @Serializable
+                data class Foo(val bar: String)
+                example {
+                    println( DEFAULT_JSON.encodeToString(Foo("foo")))
+                    println( DEFAULT_PRETTY_JSON.encodeToString(Foo("foo")))
+                }.let {
+                    mdCodeBlock(it.stdOut, type = "text")
+                }
             }
         }
         includeMdFile("outro.md")

@@ -1,13 +1,13 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.jvm.JvmTargetValidationMode
+import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 plugins {
     kotlin("multiplatform")
     kotlin("plugin.serialization")
     `maven-publish`
-    id("com.ncorti.ktfmt.gradle")
 }
 
 repositories {
@@ -17,11 +17,6 @@ repositories {
             includeGroup("com.github.jillesvangurp")
         }
     }
-}
-
-ktfmt {
-    // KotlinLang style - 4 space indentation - From kotlinlang.org/docs/coding-conventions.html
-    kotlinLangStyle()
 }
 
 kotlin {
@@ -45,15 +40,19 @@ kotlin {
     macosArm64()
     iosArm64()
     iosX64()
-    // blocked on kotest assertions wasm release
-//    @OptIn(ExperimentalWasmDsl::class)
-//    wasmJs()
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+        nodejs()
+        d8()
+    }
 
     sourceSets {
 
         commonMain {
             dependencies {
                 implementation(kotlin("stdlib-common"))
+                implementation(KotlinX.serialization.json)
             }
         }
 
@@ -105,7 +104,6 @@ tasks.withType<KotlinJvmCompile> {
     kotlinOptions {
         // this is the minimum LTS version we support, 8 is no longer supported
         jvmTarget = "11"
-        languageVersion = "1.9"
     }
 }
 

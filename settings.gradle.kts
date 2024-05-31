@@ -1,4 +1,4 @@
-rootProject.name = "my-new-kmp-project"
+rootProject.name = "kotlinx-serialization-extensions"
 
 pluginManagement {
     repositories {
