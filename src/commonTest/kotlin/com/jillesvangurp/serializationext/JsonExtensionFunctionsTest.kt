@@ -8,7 +8,7 @@ import kotlin.test.Test
 enum class SampleEnum { KEY }
 
 class JsonElementExtensionsTest {
-
+// begin-testfunctions
     @Test
     fun testGetObject() {
         val jsonObject = buildJsonObject {
@@ -154,4 +154,5 @@ class JsonElementExtensionsTest {
 
         jsonObject shouldBe JsonObject(mapOf("key2" to JsonPrimitive("value")))
     }
+// end-testfunctions
 }
