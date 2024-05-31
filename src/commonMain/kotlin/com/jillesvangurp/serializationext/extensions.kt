@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package serializationext
+package com.jillesvangurp.serializationext
 
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement

@@ -7,8 +7,8 @@ import kotlin.test.Test
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.encodeToJsonElement
-import serializationext.DEFAULT_JSON
-import serializationext.DEFAULT_PRETTY_JSON
+import com.jillesvangurp.serializationext.DEFAULT_JSON
+import com.jillesvangurp.serializationext.DEFAULT_PRETTY_JSON
 
 const val githubLink = "https://github.com/formation-res/pg-docstore"
 
