@@ -1,11 +1,12 @@
 # JsonDsl
 
-Some simple extensions for kotlinx serialization.
+[![Process Pull Request](https://github.com/jillesvangurp/kotlinx-serialization-extensions/actions/workflows/pr_master.yaml/badge.svg)](https://github.com/jillesvangurp/kotlinx-serialization-extensions/actions/workflows/pr_master.yaml)
 
-- DEFAULT_JSON and DEFAULT_PRETTY_JSON Json configurations with some sane defaults. The actual defaults in kotlinx.serialization ae wrong for anyone looking to implement forward compatible APIs
+I got tired of copy pasting these between projects, so I created a library that I can include quickly. This project has the following features:
+
+
+- DEFAULT_JSON and DEFAULT_PRETTY_JSON Json configurations with some sane defaults. The actual defaults in kotlinx.serialization are wrong for anyone looking to implement forward compatible APIs
 - Some extension functions on various things.
-
-I got tired of copy pasting these between projects, so I created a library that I can include quickly.
 
 ## Gradle
 
