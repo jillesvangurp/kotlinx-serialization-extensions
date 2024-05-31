@@ -92,6 +92,16 @@ kotlin {
             }
         }
 
+        wasmJsMain {
+
+        }
+
+        wasmJsTest {
+            dependencies {
+                implementation(kotlin("test-wasm-js"))
+            }
+        }
+
         all {
             languageSettings.optIn("kotlin.RequiresOptIn")
         }

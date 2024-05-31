@@ -66,3 +66,31 @@ fun JsonObject?.deleteKeys(vararg keys: String): JsonObject? {
     if (this == null) return null
     return JsonObject((this.toMap() - keys.toSet()))
 }
+
+fun List<*>.toJsonElement(): JsonArray {
+    val list: MutableList<JsonElement> = mutableListOf()
+    this.forEach {
+        val value = it ?: return@forEach
+        when (value) {
+            is Map<*, *> -> list.add((value).toJsonElement())
+            is List<*> -> list.add(value.toJsonElement())
+            else -> list.add(JsonPrimitive(value.toString()))
+        }
+    }
+    return JsonArray(list)
+}
+
+fun Map<*, *>.toJsonElement(): JsonObject {
+    val map: MutableMap<String, JsonElement> = mutableMapOf()
+    this.forEach {
+        val key = it.key as? String ?: return@forEach
+        val value = it.value ?: return@forEach
+        when (value) {
+            is Map<*, *> -> map[key] = (value).toJsonElement()
+            is List<*> -> map[key] = value.toJsonElement()
+            else -> map[key] = JsonPrimitive(value.toString())
+        }
+    }
+    return JsonObject(map)
+}
+
