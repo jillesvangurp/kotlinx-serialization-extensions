@@ -3,6 +3,7 @@ Some simple extensions for kotlinx serialization.
 - DEFAULT_JSON and DEFAULT_PRETTY_JSON Json configurations with some sane defaults. The actual defaults in kotlinx.serialization ae wrong for anyone looking to implement forward compatible APIs
 - Some extension functions on various things.
 
+I got tired of copy pasting these between projects, so I created a library that I can include quickly.
 
 ## Gradle
 

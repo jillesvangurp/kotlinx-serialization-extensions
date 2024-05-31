@@ -5,6 +5,7 @@ Some simple extensions for kotlinx serialization.
 - DEFAULT_JSON and DEFAULT_PRETTY_JSON Json configurations with some sane defaults. The actual defaults in kotlinx.serialization ae wrong for anyone looking to implement forward compatible APIs
 - Some extension functions on various things.
 
+I got tired of copy pasting these between projects, so I created a library that I can include quickly.
 
 ## Gradle
 
@@ -32,13 +33,9 @@ And then you can add the dependency:
 
 ## Example usage
 
-The main feature of [kotlin4example](https://github.com/jillesvangurp/kotlin4example) is of course integrating code samples into your documentation.   
-
-### Json
-
 ```kotlin
-println( DEFAULT_JSON.encodeToString(Foo("foo")))
-println( DEFAULT_PRETTY_JSON.encodeToString(Foo("foo")))
+println(DEFAULT_JSON.encodeToString(Foo("foo")))
+println(DEFAULT_PRETTY_JSON.encodeToString(Foo("foo")))
 ```
 
 ```text
