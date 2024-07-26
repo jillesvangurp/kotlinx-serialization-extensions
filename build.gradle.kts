@@ -109,6 +109,12 @@ kotlin {
     }
 }
 
+tasks.named("iosSimulatorArm64Test") {
+    // requires IOS simulator and tens of GB of other stuff to be installed
+    // so keep it disabled
+    enabled = false
+}
+
 tasks.withType<KotlinJvmCompile> {
     jvmTargetValidationMode.set(JvmTargetValidationMode.WARNING)
 
