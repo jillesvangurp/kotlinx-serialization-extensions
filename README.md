@@ -123,8 +123,14 @@ your server reject previously valid JSON after minor changes breaks
 compatibility 
 
 ```kotlin
-println(DEFAULT_JSON.encodeToString(Foo("foo")))
-println(DEFAULT_PRETTY_JSON.encodeToString(Foo("foo")))
+@Serializable
+data class Foo(val bar: String, val baz: String?=null)
+
+val value = Foo("foo")
+
+// use just like you would use your Json() instance
+println(DEFAULT_JSON.encodeToString(value))
+println(DEFAULT_PRETTY_JSON.encodeToString(value))
 ```
 
 ```text
