@@ -40,7 +40,7 @@ And then you can add the dependency:
 
 ## Defaults used
 
-The code snippet below are the two `Json` instances with sane defaults. 
+The code snippet below is the two `Json` instances with sane defaults. 
 See the comments in the code for what has been configured and why.                                                              
 
 ```kotlin
@@ -119,7 +119,7 @@ weird and problematic for such clients; especially if they are non trivial.
 A closed world assumption of everybody using kotlin and kotlinx.serialization 
 simply is not appropriate for either client code or server code. Making your 
 client reject minor changes in responses makes your client code brittle. Having 
-your server reject previously valid valid JSON after minor changes breaks 
+your server reject previously valid JSON after minor changes breaks 
 compatibility 
 
 ```kotlin
@@ -173,10 +173,10 @@ sequences, and primitive arrays—into `JsonElement`s, making it easy to build o
 manipulate JSON structures idiomatically in Kotlin.                               
 
 You can find the 
-[extension functions](https://github.com/formation-res/kotlinx-serialization-extensions/src/commonMain/kotlin/com/jillesvangurp/serializationext/extensions.kt) here.
+[extension functions](https://github.com/formation-res/kotlinx-serialization-extensions/blob/main/src/commonMain/kotlin/com/jillesvangurp/serializationext/extensions.kt) here.
 
 The code snippet below documents usage of these via the test cases in                 
-[JsonExtensionFunctionsTest](https://github.com/formation-res/kotlinx-serialization-extensions/src/commonTest/kotlin/com/jillesvangurp/serializationext/JsonExtensionFunctionsTest.kt).
+[JsonExtensionFunctionsTest](https://github.com/formation-res/kotlinx-serialization-extensions/blob/main/src/commonTest/kotlin/com/jillesvangurp/serializationext/JsonExtensionFunctionsTest.kt).
 
 ```kotlin
   enum class SampleEnum { KEY }
@@ -354,7 +354,11 @@ The code snippet below documents usage of these via the test cases in
 }
 ```
 
+## License
+
+All code is licensed under the [MIT License](LICENSE).
+
 ## Multi platform
 
-This is a Kotlin multi platform library that should work on most  kotlin platforms (jvm, js, ios, android, wasm, etc). 
+This is a Kotlin Multiplatform library that should work on most kotlin platforms (jvm, js, ios, android, wasm, etc). 
 
