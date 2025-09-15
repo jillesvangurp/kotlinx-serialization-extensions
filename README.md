@@ -1,4 +1,4 @@
-# JsonDsl
+# Kotlinx Serialization Extensions
 
 [![Process Pull Request](https://github.com/jillesvangurp/kotlinx-serialization-extensions/actions/workflows/pr_master.yaml/badge.svg)](https://github.com/jillesvangurp/kotlinx-serialization-extensions/actions/workflows/pr_master.yaml)
 

@@ -22,9 +22,9 @@ class ReadmeGenerationTest {
         File(".", "README.md")
             .writeText(
                 """
-            # JsonDsl
-
-        """.trimIndent().trimMargin() +
+                    # Kotlinx Serialization Extensions
+        
+                """.trimIndent().trimMargin() +
                     "\n\n" +
                     readmeMd.value,
             )
@@ -141,11 +141,20 @@ val readmeMd =
                 manipulate JSON structures idiomatically in Kotlin.                               
                 
                 You can find the 
-                ${mdLinkToRepoResource("extension functions","/blob/main/src/commonMain/kotlin/com/jillesvangurp/serializationext/extensions.kt")} here.
+                ${
+                mdLinkToRepoResource(
+                    "extension functions",
+                    "/blob/main/src/commonMain/kotlin/com/jillesvangurp/serializationext/extensions.kt",
+                )
+            } here.
 
                 The code snippet below documents usage of these via the test cases in                 
-                ${mdLinkToRepoResource("JsonExtensionFunctionsTest",
-                "/blob/main/src/commonTest/kotlin/com/jillesvangurp/serializationext/JsonExtensionFunctionsTest.kt")}.
+                ${
+                mdLinkToRepoResource(
+                    "JsonExtensionFunctionsTest",
+                    "/blob/main/src/commonTest/kotlin/com/jillesvangurp/serializationext/JsonExtensionFunctionsTest.kt",
+                )
+            }.
             """.trimIndent()
             exampleFromSnippet(
                 "com/jillesvangurp/serializationext/JsonExtensionFunctionsTest.kt",
