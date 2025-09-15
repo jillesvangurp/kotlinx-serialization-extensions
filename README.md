@@ -2,11 +2,17 @@
 
 [![Process Pull Request](https://github.com/jillesvangurp/kotlinx-serialization-extensions/actions/workflows/pr_master.yaml/badge.svg)](https://github.com/jillesvangurp/kotlinx-serialization-extensions/actions/workflows/pr_master.yaml)
 
-I got tired of copy pasting these between projects, so I created a library that I can include quickly. This project has the following features:
+This is a small library that fixes the default settings for `Json()` in `kotlinx.serialization` that should
+benefit anyone that uses that for e.g. use in servers or API clients.
 
+I got tired of copy pasting these between essentially every project where I use `kotlinx.serialization`, so I created this library. This allows me to pull this in everywhere I need this and gives me a central place to manage these defaults.
 
-- DEFAULT_JSON and DEFAULT_PRETTY_JSON Json configurations with some sane defaults. The actual defaults in kotlinx.serialization are wrong for anyone looking to implement forward compatible APIs
-- Some extension functions on various things.
+Features
+
+- DEFAULT_JSON and DEFAULT_PRETTY_JSON Json configurations with some sane defaults. The actual defaults in kotlinx.serialization are wrong for anyone looking to implement forward compatible APIs. 
+- Some extension functions on various things that make working with `JsonElement` in kotlinx a bit less painful. 
+
+See the documentation below for more details.
 
 ## Gradle
 
@@ -32,20 +38,89 @@ And then you can add the dependency:
     implementation("com.jillesvangurp:kotlinx-serialization-extensions:1.x.y")
 ```
 
+## Defaults used
+
+The code snippet below are the two `Json` instances with sane defaults. 
+See the comments in the code for what has been configured and why.                                                              
+
+```kotlin
+/**
+ * Sane/safe defaults for [Json].
+ */
+val DEFAULT_JSON: Json = Json {
+  // preserving defaults is important
+  // don't assume users of your json has access to your model classes
+  encodeDefaults = true
+  // no new lines, useful if you are generating e.g. ndjson or
+  // just want to save space on redundant whitespace
+  prettyPrint = false
+  // tolerate minor json issues in favor of still being able to parse things
+  // this allows you to handle the quite common case of e.g. numbers being encoded as strings ("42")
+  // and still parse this correctly
+  isLenient = true
+  // encoding nulls can waste a lot of space and client code should not depend on nulls being
+  // present to begin with . Unless you have parsing logic
+  // depending on explicit nulls (why?!) don't turn this on
+  explicitNulls = false
+  // forward compatibility: new fields in the json are OK, just ignore them
+  // true is critical for clients when servers add new fields.
+  // Without it, even harmless additions can break consumers.
+  ignoreUnknownKeys = true
+  // forward compatibility: ignore unknown enum values
+  coerceInputValues = true
+  // handle serialized NaN and infinity double values instead of having them default to null
+  allowSpecialFloatingPointValues = true
+}
+
+/**
+ * Same as [DEFAULT_JSON] with pretty printing turned on
+ */
+val DEFAULT_PRETTY_JSON: Json = Json {
+  encodeDefaults = true
+  prettyPrint = true
+  isLenient = true
+  explicitNulls = false
+  ignoreUnknownKeys = true
+  coerceInputValues = true
+  allowSpecialFloatingPointValues = true
+}
+```
+
+By default, Json() is too strict—throwing errors on missing keys, unknown keys, 
+unexpected enum strings, or null where not expected. This behavior is not appropriate
+for normal servers because it can break working client code with seemingly simple 
+changes. And it's also not appropriate for client parsing code because any server 
+changes might break previously working client code.
+
+In other words, the defaults only are appropriate when you can tightly control 
+both sides, but fails in more common systems where spec drift is normal, 
+not all code uses Kotlin, or where client and server code evolve at different pace.                                    
+The kotlinx.serialization defaults are probably wrong for common use in API clients, code for rendering server responses, or any similar use cases for the following reasons:
+                
+- They expose you to forward/backward compatibility issues
+- They make assumptions about the client parser capabilities/features that parses your json  
+- Encoding nulls means you generate a lot of bloated Json for sparsely 
+populated objects with a lot of null values.                
+
 ## Example usage
 
 ### Using DEFAULT_JSON and DEFAULT_PRETTY_JSON
 
-Because the defaults for Json in kotlinx.serialization are a bit dangerous, this
-library has alternatives with more sane settings.
+Because the defaults for Json in kotlinx.serialization are a bit problematic, this
+library provides alternatives with more appropriate settings.
 
 Particularly, it's designed to be lenient, not serialize nulls, 
 not fail on missing keys, enum values, etc.
 
 This is important for forward and backward compatibility. Also many languages 
 don't have default values for parameters so omitting default values is just
-weird and actively harmful. And a closed world assumption of everybody using
-kotlin and kotlinx.serialization simply breaks in the real world.
+weird and problematic for such clients; especially if they are non trivial. 
+
+A closed world assumption of everybody using kotlin and kotlinx.serialization 
+simply is not appropriate for either client code or server code. Making your 
+client reject minor changes in responses makes your client code brittle. Having 
+your server reject previously valid valid JSON after minor changes breaks 
+compatibility 
 
 ```kotlin
 println(DEFAULT_JSON.encodeToString(Foo("foo")))
@@ -59,153 +134,223 @@ println(DEFAULT_PRETTY_JSON.encodeToString(Foo("foo")))
 }
 ```
 
-### Extension functions
+## Misc. open issues in kotlinx.serialization and caveats
+
+There are of course some valid reasons why the kotlinx.serialization defaults are the way they are. This includes
+a few open bugs:
+
+- [coerceInputValues prevent custom enum serializer to be used](https://github.com/Kotlin/kotlinx.serialization/issues/1947)
+- [Unexpected MissingFieldException when decoding explicit null value from json for nullable enum](https://github.com/Kotlin/kotlinx.serialization/issues/2170)
+
+Other considerations:
+
+- `encodeDefaults = true` and `explicitNulls = false` may cause some confusion 
+with **non null default values being omitted for null values**. That's probably the reason the defaults are inverted in `kotlinx.serialization`.
+But as noted, that causes other issues with needless bloat in the form of null json values and relying
+on client code to be able to generate the same defaults. It's better to write code that doesn't rely
+on this kind of magic.
+- `coerceInputValues = true` can silently coerce out-of-range numbers to defaults (e.g., Long overflow). 
+Great for resilience, but it can mask data quality issues.
+- allowSpecialFloatingPointValues = true improves robustness but may violate 
+strict JSON consumers downstream. IMHO this is better than dropping values or 
+defaulting them to 0.0 but there can be cases where this is not ideal. 
+
+If you need different defaults, you can of course simply copy and adapt the above as needed.
+
+## Extension Functions Overview
+
+In addition to sane defaults, I've also bundled a few extension functions in this 
+library that make working with json elements a bit nicer. 
+
+These extensions provide convenience functions for working with `JsonObject`, 
+`JsonArray`, and related types in **kotlinx.serialization**. They add safe getters 
+(`getObject`, `getString`, `getDouble`, etc.), array extractors (`getStringArray`, 
+`getDoubleArray`), and mutators (`set`, `deleteKeys`). 
+
+They also include generic conversion utilities (`toJsonElement`, `toJsonArray`, 
+`toJsonObject`) that turn common Kotlin types—scalars, enums, maps, collections, 
+sequences, and primitive arrays—into `JsonElement`s, making it easy to build or 
+manipulate JSON structures idiomatically in Kotlin.                               
+
+You can find the 
+[extension functions](https://github.com/formation-res/kotlinx-serialization-extensions/src/commonMain/kotlin/com/jillesvangurp/serializationext/extensions.kt) here.
+
+The code snippet below documents usage of these via the test cases in                 
+[JsonExtensionFunctionsTest](https://github.com/formation-res/kotlinx-serialization-extensions/src/commonTest/kotlin/com/jillesvangurp/serializationext/JsonExtensionFunctionsTest.kt).
 
 ```kotlin
-@Test
-fun testGetObject() {
-  val jsonObject = buildJsonObject {
-    put("nested", buildJsonObject { put("key", "value") })
+  enum class SampleEnum { KEY }
+
+  // Nested object lookup: returns the JsonObject when present, null when missing or not an object
+  @Test
+  fun getNestedObject_returnsObjectOrNull() {
+    val jsonObject = buildJsonObject {
+      put("nested", buildJsonObject { put("key", "value") })
+    }
+    jsonObject.getObject("nested") shouldBe JsonObject(mapOf("key" to JsonPrimitive("value")))
+    jsonObject.getObject("nonexistent").shouldBeNull()
   }
-  jsonObject.getObject("nested") shouldBe JsonObject(mapOf("key" to JsonPrimitive("value")))
-  jsonObject.getObject("nonexistent").shouldBeNull()
-}
 
-@Test
-fun testGetDouble() {
-  val jsonObject = buildJsonObject {
-    put("number", 42.0)
-    put("nullValue", JsonNull)
+  // Number lookup: unwraps JsonPrimitive double; returns null for explicit null or missing key
+  @Test
+  fun getDouble_handlesNullAndMissing() {
+    val jsonObject = buildJsonObject {
+      put("number", 42.0)
+      put("nullValue", JsonNull) // explicit null should yield null
+    }
+    jsonObject.getDouble("number") shouldBe 42.0
+    jsonObject.getDouble("nullValue").shouldBeNull()
+    jsonObject.getDouble("nonexistent").shouldBeNull()
   }
-  jsonObject.getDouble("number") shouldBe 42.0
-  jsonObject.getDouble("nullValue").shouldBeNull()
-  jsonObject.getDouble("nonexistent").shouldBeNull()
-}
 
-@Test
-fun testGetArray() {
-  val jsonObject = buildJsonObject {
-    put("array", buildJsonArray { add("one"); add("two") })
-    put("nullArray", JsonNull)
+  // Array lookup: returns array or null (including when the value is JsonNull)
+  @Test
+  fun getArray_returnsArrayOrNull() {
+    val jsonObject = buildJsonObject {
+      put("array", buildJsonArray { add("one"); add("two") })
+      put("nullArray", JsonNull)
+    }
+    jsonObject.getArray("array") shouldBe JsonArray(listOf(JsonPrimitive("one"), JsonPrimitive("two")))
+    jsonObject.getArray("nullArray").shouldBeNull()
+    jsonObject.getArray("nonexistent").shouldBeNull()
   }
-  jsonObject.getArray("array") shouldBe JsonArray(listOf(JsonPrimitive("one"), JsonPrimitive("two")))
-  jsonObject.getArray("nullArray").shouldBeNull()
-  jsonObject.getArray("nonexistent").shouldBeNull()
-}
 
-@Test
-fun testGetStringArray() {
-  val jsonObject = buildJsonObject {
-    put("stringArray", buildJsonArray { add("one"); add("two") })
+  // Convenience extractor: returns a Kotlin List<String>, empty when key missing or not an array of strings
+  @Test
+  fun getStringArray_returnsListOrEmpty() {
+    val jsonObject = buildJsonObject {
+      put("stringArray", buildJsonArray { add("one"); add("two") })
+    }
+    jsonObject.getStringArray("stringArray") shouldBe listOf("one", "two")
+    jsonObject.getStringArray("nonexistent") shouldBe emptyList()
   }
-  jsonObject.getStringArray("stringArray") shouldBe listOf("one", "two")
-  jsonObject.getStringArray("nonexistent") shouldBe emptyList()
-}
 
-@Test
-fun testGetDoubleArray() {
-  val jsonObject = buildJsonObject {
-    put("doubleArray", buildJsonArray { add(1.0); add(2.0) })
+  // Convenience extractor: returns a Kotlin List<Double>, empty when missing
+  @Test
+  fun getDoubleArray_returnsListOrEmpty() {
+    val jsonObject = buildJsonObject {
+      put("doubleArray", buildJsonArray { add(1.0); add(2.0) })
+    }
+    jsonObject.getDoubleArray("doubleArray") shouldBe listOf(1.0, 2.0)
+    jsonObject.getDoubleArray("nonexistent") shouldBe emptyList()
   }
-  jsonObject.getDoubleArray("doubleArray") shouldBe listOf(1.0, 2.0)
-  jsonObject.getDoubleArray("nonexistent") shouldBe emptyList()
-}
 
-@Test
-fun testGetString() {
-  val jsonObject = buildJsonObject {
-    put("string", "value")
-    put("nullValue", JsonNull)
+  // String lookup: returns value or null (for explicit null or missing key)
+  @Test
+  fun getString_returnsValueOrNull() {
+    val jsonObject = buildJsonObject {
+      put("string", "value")
+      put("nullValue", JsonNull)
+    }
+    jsonObject.getString("string") shouldBe "value"
+    jsonObject.getString("nullValue").shouldBeNull()
+    jsonObject.getString("nonexistent").shouldBeNull()
   }
-  jsonObject.getString("string") shouldBe "value"
-  jsonObject.getString("nullValue").shouldBeNull()
-  jsonObject.getString("nonexistent").shouldBeNull()
-}
 
-
-@Test
-fun testGetStringWithEnum() {
-  val jsonObject = buildJsonObject {
-    put("KEY", "value")
+  // Overloads: supports enum keys and raw string keys
+  @Test
+  fun getString_supportsEnumKeys() {
+    val jsonObject = buildJsonObject {
+      put("KEY", "value")
+    }
+    jsonObject.getString(SampleEnum.KEY) shouldBe "value"
+    jsonObject.getString(SampleEnum.KEY.name) shouldBe "value"
   }
-  jsonObject.getString(SampleEnum.KEY) shouldBe "value"
-  jsonObject.getString(SampleEnum.KEY.name) shouldBe "value"
-}
 
-@Test
-fun testSet() {
-  val jsonObject = buildJsonObject {
-    put("existing", "value")
+  // Non-destructive update: returns a copy with the provided key/value set
+  @Test
+  fun set_addsOrReplacesEntry() {
+    val jsonObject = buildJsonObject {
+      put("existing", "value")
+    }
+    val updatedJsonObject = jsonObject.set("newKey" to JsonPrimitive("newValue"))
+    updatedJsonObject shouldBe JsonObject(
+      mapOf(
+        "existing" to JsonPrimitive("value"),
+        "newKey" to JsonPrimitive("newValue")
+      )
+    )
   }
-  val updatedJsonObject = jsonObject.set("newKey" to JsonPrimitive("newValue"))
-  updatedJsonObject shouldBe JsonObject(mapOf("existing" to JsonPrimitive("value"), "newKey" to JsonPrimitive("newValue")))
-}
 
-@Test
-fun testDeleteKeys() {
-  val jsonObject = buildJsonObject {
-    put("key1", "value1")
-    put("key2", "value2")
+  // Non-destructive delete: returns a copy without the specified keys
+  @Test
+  fun deleteKeys_removesSpecifiedKeys() {
+    val jsonObject = buildJsonObject {
+      put("key1", "value1")
+      put("key2", "value2")
+    }
+    val updatedJsonObject = jsonObject.deleteKeys("key1")
+    updatedJsonObject shouldBe JsonObject(mapOf("key2" to JsonPrimitive("value2")))
   }
-  val updatedJsonObject = jsonObject.deleteKeys("key1")
-  updatedJsonObject shouldBe JsonObject(mapOf("key2" to JsonPrimitive("value2")))
-}
-@Test
-fun testListToJsonElement() {
-  val list = listOf("one", 2, mapOf("key" to "value"), listOf(1, 2, 3))
-  val jsonArray = list.toJsonElement()
 
-  jsonArray shouldBe JsonArray(listOf(
-    JsonPrimitive("one"),
-    JsonPrimitive("2"),
-    JsonObject(mapOf("key" to JsonPrimitive("value"))),
-    JsonArray(listOf(JsonPrimitive("1"), JsonPrimitive("2"), JsonPrimitive("3")))
-  ))
-}
+  // Generic List -> JsonElement (JsonArray) conversion: supports primitives, maps, and nested lists
+  @Test
+  fun list_toJsonElement_serializesSupportedTypes() {
+    val list = listOf("one", 2, mapOf("key" to "value"), listOf(1, 2, 3))
+    val jsonArray = list.toJsonElement()
 
-@Test
-fun testMapToJsonElement() {
-  val map = mapOf("string" to "value", "number" to 42, "nestedMap" to mapOf("key" to "value"), "list" to listOf(1, 2, 3))
-  val jsonObject = map.toJsonElement()
+    jsonArray shouldBe JsonArray(
+      listOf(
+        JsonPrimitive("one"),
+        JsonPrimitive("2"), // numbers become strings by design in this helper
+        JsonObject(mapOf("key" to JsonPrimitive("value"))),
+        JsonArray(listOf(JsonPrimitive("1"), JsonPrimitive("2"), JsonPrimitive("3")))
+      )
+    )
+  }
 
-  jsonObject shouldBe JsonObject(mapOf(
-    "string" to JsonPrimitive("value"),
-    "number" to JsonPrimitive("42"),
-    "nestedMap" to JsonObject(mapOf("key" to JsonPrimitive("value"))),
-    "list" to JsonArray(listOf(JsonPrimitive("1"), JsonPrimitive("2"), JsonPrimitive("3")))
-  ))
-}
+  // Generic Map -> JsonElement (JsonObject) conversion: supports primitives, maps, and lists
+  @Test
+  fun map_toJsonElement_serializesSupportedTypes() {
+    val map = mapOf(
+      "string" to "value",
+      "number" to 42,
+      "nestedMap" to mapOf("key" to "value"),
+      "list" to listOf(1, 2, 3)
+    )
+    val jsonObject = map.toJsonElement()
 
-@Test
-fun testEmptyListToJsonElement() {
-  val list = emptyList<Any?>()
-  val jsonArray = list.toJsonElement()
+    jsonObject shouldBe JsonObject(
+      mapOf(
+        "string" to JsonPrimitive("value"),
+        "number" to JsonPrimitive("42"),
+        "nestedMap" to JsonObject(mapOf("key" to JsonPrimitive("value"))),
+        "list" to JsonArray(listOf(JsonPrimitive("1"), JsonPrimitive("2"), JsonPrimitive("3")))
+      )
+    )
+  }
 
-  jsonArray shouldBe JsonArray(emptyList())
-}
+  // Edge case: empty list becomes an empty JsonArray
+  @Test
+  fun emptyList_toJsonElement_isEmptyArray() {
+    val list = emptyList<Any?>()
+    val jsonArray = list.toJsonElement()
+    jsonArray shouldBe JsonArray(emptyList())
+  }
 
-@Test
-fun testEmptyMapToJsonElement() {
-  val map = emptyMap<String, Any?>()
-  val jsonObject = map.toJsonElement()
+  // Edge case: empty map becomes an empty JsonObject
+  @Test
+  fun emptyMap_toJsonElement_isEmptyObject() {
+    val map = emptyMap<String, Any?>()
+    val jsonObject = map.toJsonElement()
+    jsonObject shouldBe JsonObject(emptyMap())
+  }
 
-  jsonObject shouldBe JsonObject(emptyMap())
-}
+  // Null handling: nulls are dropped from lists
+  @Test
+  fun list_toJsonElement_ignoresNulls() {
+    val list = listOf(null, "test", null)
+    val jsonArray = list.toJsonElement()
+    jsonArray shouldBe JsonArray(listOf(JsonPrimitive("test")))
+  }
 
-@Test
-fun testNullValuesInListToJsonElement() {
-  val list = listOf(null, "test", null)
-  val jsonArray = list.toJsonElement()
-
-  jsonArray shouldBe JsonArray(listOf(JsonPrimitive("test")))
-}
-
-@Test
-fun testNullValuesInMapToJsonElement() {
-  val map = mapOf("key1" to null, "key2" to "value")
-  val jsonObject = map.toJsonElement()
-
-  jsonObject shouldBe JsonObject(mapOf("key2" to JsonPrimitive("value")))
+  // Null handling: null-valued entries are dropped from maps
+  @Test
+  fun map_toJsonElement_ignoresNullValues() {
+    val map = mapOf("key1" to null, "key2" to "value")
+    val jsonObject = map.toJsonElement()
+    jsonObject shouldBe JsonObject(mapOf("key2" to JsonPrimitive("value")))
+  }
 }
 ```
 

@@ -67,30 +67,64 @@ fun JsonObject?.deleteKeys(vararg keys: String): JsonObject? {
     return JsonObject((this.toMap() - keys.toSet()))
 }
 
-fun List<*>.toJsonElement(): JsonArray {
-    val list: MutableList<JsonElement> = mutableListOf()
-    this.forEach {
-        val value = it ?: return@forEach
-        when (value) {
-            is Map<*, *> -> list.add((value).toJsonElement())
-            is List<*> -> list.add(value.toJsonElement())
-            else -> list.add(JsonPrimitive(value.toString()))
-        }
-    }
-    return JsonArray(list)
+/** Backwards-compatible helpers if you want the old names */
+fun List<*>.toJsonElement(): JsonArray = this.toJsonArray()
+fun Map<*, *>.toJsonElement(): JsonObject = this.toJsonObject()
+
+// FIXME add a version of foo["bar"] = e that calls toJsonElement on e where e:Any
+// FIXME do the same for JsonArray.add()
+
+/** Generic: turn anything into a JsonElement */
+@Suppress("UNCHECKED_CAST")
+fun Any?.toJsonElement(): JsonElement? = when (this) {
+    null -> null
+    is JsonElement -> this
+
+    // Scalars
+    is String -> JsonPrimitive(this)
+    is Char -> JsonPrimitive(toString())
+    is Boolean -> JsonPrimitive(this)
+    is Number -> JsonPrimitive(this.toString())
+    is Enum<*> -> JsonPrimitive(name)
+
+    // Maps
+    is Map<*, *> -> toJsonObject()
+
+    // Iterables / Sequences
+    is Iterable<*> -> toJsonArray()
+    is Sequence<*> -> toList().toJsonArray()
+    is Array<*> -> asList().toJsonArray()
+
+    // Primitive arrays
+    is IntArray -> JsonArray(map { JsonPrimitive(it) })
+    is LongArray -> JsonArray(map { JsonPrimitive(it) })
+    is ShortArray -> JsonArray(map { JsonPrimitive(it) })
+    is ByteArray -> JsonArray(map { JsonPrimitive(it) })
+    is DoubleArray -> JsonArray(map { JsonPrimitive(it) })
+    is FloatArray -> JsonArray(map { JsonPrimitive(it) })
+    is BooleanArray -> JsonArray(map { JsonPrimitive(it) })
+    is CharArray -> JsonArray(map { JsonPrimitive(it.toString()) })
+
+    // Just use toString for anything else
+    else -> JsonPrimitive(toString())
 }
 
-fun Map<*, *>.toJsonElement(): JsonObject {
-    val map: MutableMap<String, JsonElement> = mutableMapOf()
-    this.forEach {
-        val key = it.key as? String ?: return@forEach
-        val value = it.value ?: return@forEach
-        when (value) {
-            is Map<*, *> -> map[key] = (value).toJsonElement()
-            is List<*> -> map[key] = value.toJsonElement()
-            else -> map[key] = JsonPrimitive(value.toString())
+/** Iterable -> JsonArray */
+fun Iterable<*>.toJsonArray(): JsonArray =
+    JsonArray(mapNotNull { it.toJsonElement() })
+
+/** Map -> JsonObject (stringify non-string keys) */
+fun Map<*, *>.toJsonObject(): JsonObject {
+    val out = buildMap<String, JsonElement> {
+        for ((k, v) in this@toJsonObject) {
+            if (v == null) continue
+            val key = k?.toString() ?: continue
+
+            v.toJsonElement()?.let {
+                put(key, it)
+            }
         }
     }
-    return JsonObject(map)
+    return JsonObject(out)
 }
 

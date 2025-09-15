@@ -5,29 +5,37 @@ package com.jillesvangurp.serializationext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 
+// begin-jsondefaults
 /**
- * Sane defaults for [Json].
+ * Sane/safe defaults for [Json].
  */
 val DEFAULT_JSON: Json = Json {
-    // don't rely on external systems being written in kotlin or even having a language with default
-    // values the default of false is dangerous
+    // preserving defaults is important
+    // don't assume users of your json has access to your model classes
     encodeDefaults = true
-    // save space
+    // no new lines, useful if you are generating e.g. ndjson or
+    // just want to save space on redundant whitespace
     prettyPrint = false
-    // people adding things to the json is OK, we're forward compatible and will just ignore it
+    // tolerate minor json issues in favor of still being able to parse things
+    // this allows you to handle the quite common case of e.g. numbers being encoded as strings ("42")
+    // and still parse this correctly
     isLenient = true
-    // encoding nulls is meaningless and a waste of space.
+    // encoding nulls can waste a lot of space and client code should not depend on nulls being
+    // present to begin with . Unless you have parsing logic
+    // depending on explicit nulls (why?!) don't turn this on
     explicitNulls = false
-    // adding new fields is OK even if older clients won't understand it
+    // forward compatibility: new fields in the json are OK, just ignore them
+    // true is critical for clients when servers add new fields.
+    // Without it, even harmless additions can break consumers.
     ignoreUnknownKeys = true
-    // ignore unknown enum values
+    // forward compatibility: ignore unknown enum values
     coerceInputValues = true
-    // handle NaN and infinity
+    // handle serialized NaN and infinity double values instead of having them default to null
     allowSpecialFloatingPointValues = true
 }
 
 /**
- * Sane defaults for [Json] with pretty printing.
+ * Same as [DEFAULT_JSON] with pretty printing turned on
  */
 val DEFAULT_PRETTY_JSON: Json = Json {
     encodeDefaults = true
@@ -38,3 +46,4 @@ val DEFAULT_PRETTY_JSON: Json = Json {
     coerceInputValues = true
     allowSpecialFloatingPointValues = true
 }
+// end-jsondefaults

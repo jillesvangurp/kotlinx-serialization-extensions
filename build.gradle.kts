@@ -1,9 +1,11 @@
+@file:OptIn(ExperimentalWasmDsl::class)
+
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.jvm.JvmTargetValidationMode
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 plugins {
@@ -47,7 +49,6 @@ kotlin {
     iosArm64()
     iosX64()
     iosSimulatorArm64()
-    @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser()
         nodejs()
@@ -128,11 +129,6 @@ tasks.named("iosSimulatorArm64Test") {
 
 tasks.withType<KotlinJvmCompile> {
     jvmTargetValidationMode.set(JvmTargetValidationMode.WARNING)
-
-    kotlinOptions {
-        // this is the minimum LTS version we support, 8 is no longer supported
-        jvmTarget = "11"
-    }
 }
 
 publishing {
