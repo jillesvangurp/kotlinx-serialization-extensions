@@ -179,10 +179,10 @@ sequences, and primitive arrays—into `JsonElement`s, making it easy to build o
 manipulate JSON structures idiomatically in Kotlin.                               
 
 You can find the 
-[extension functions](https://github.com/formation-res/kotlinx-serialization-extensions/blob/main/src/commonMain/kotlin/com/jillesvangurp/serializationext/extensions.kt) here.
+[extension functions](https://github.com/jillesvangurp/kotlinx-serialization-extensions/blob/main/src/commonMain/kotlin/com/jillesvangurp/serializationext/extensions.kt) here.
 
 The code snippet below documents usage of these via the test cases in                 
-[JsonExtensionFunctionsTest](https://github.com/formation-res/kotlinx-serialization-extensions/blob/main/src/commonTest/kotlin/com/jillesvangurp/serializationext/JsonExtensionFunctionsTest.kt).
+[JsonExtensionFunctionsTest](https://github.com/jillesvangurp/kotlinx-serialization-extensions/blob/main/src/commonTest/kotlin/com/jillesvangurp/serializationext/JsonExtensionFunctionsTest.kt).
 
 ```kotlin
 // 👇 Build a simple JSON object with nested structures and various types

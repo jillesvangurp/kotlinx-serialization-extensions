@@ -7,7 +7,7 @@ import java.io.File
 import kotlin.test.Test
 import kotlinx.serialization.Serializable
 
-const val githubLink = "https://github.com/formation-res/kotlinx-serialization-extensions"
+const val githubLink = "https://github.com/jillesvangurp/kotlinx-serialization-extensions"
 
 val sourceGitRepository =
     SourceRepository(
