@@ -15,7 +15,6 @@ import kotlinx.serialization.json.put
 
 
 class JsonElementExtensionsTest {
-    // begin-testfunctions
     enum class SampleEnum { KEY }
 
     // Nested object lookup: returns the JsonObject when present, null when missing or not an object
@@ -307,7 +306,72 @@ class JsonElementExtensionsTest {
         val arr = list.toJsonArray()
         arr shouldBe JsonArray(listOf(JsonPrimitive("a"), JsonPrimitive("b")))
     }
-    
-// end-testfunctions
+
+
+    @Test
+    fun shouldProvideIllustrativeExample() {
+        // begin-testfunctions
+
+        // 👇 Build a simple JSON object with nested structures and various types
+        val user = buildJsonObject {
+            put("id", 123)
+            put("name", "Alice")
+            put("isActive", true)
+            put("tags", buildJsonArray { add("kotlin"); add("serialization") })
+            put(
+                "address",
+                buildJsonObject {
+                    put("city", "Berlin")
+                    put("zip", "10115")
+                },
+            )
+        }
+
+        // 👇 Access primitives safely
+        user.getString("name") shouldBe "Alice"
+        user.getLong("id") shouldBe 123
+        user.getBoolean("isActive") shouldBe true
+        user.getString("missing").shouldBeNull()
+
+        // 👇 Nested lookup using vararg path
+        user.getString("address", "city") shouldBe "Berlin"
+        user.getString("address", "zip") shouldBe "10115"
+
+        // 👇 Arrays as Kotlin lists
+        user.getStringArray("tags") shouldBe listOf("kotlin", "serialization")
+
+        // 👇 Modify JSON non-destructively
+        val updatedUser = user.modify {
+            put("country", "Germany")
+        }
+        updatedUser.getString("country") shouldBe "Germany"
+        user.getString("country").shouldBeNull() // original unchanged
+
+        // 👇 Remove keys cleanly
+        val trimmed = updatedUser.deleteKeys("isActive")
+        trimmed.getBooleanOrNull("isActive").shouldBeNull()
+
+        // 👇 Convert Kotlin structures to JSON
+        val skills = listOf("KMP", "Coroutines", "Serialization").toJsonElement()
+        val metadata = mapOf("role" to "Developer", "level" to 3).toJsonElement()
+
+        skills shouldBe JsonArray(listOf(JsonPrimitive("KMP"), JsonPrimitive("Coroutines"), JsonPrimitive("Serialization")))
+        metadata shouldBe JsonObject(mapOf("role" to JsonPrimitive("Developer"), "level" to JsonPrimitive("3")))
+
+        // 👇 Combine everything
+        val profile = buildJsonObject {
+            put("user", user)
+            put("skills", skills)
+            put("metadata", metadata)
+        }
+
+        // 👇 Deep clone is safe to modify independently
+        val clone = profile.clone()
+        (clone as JsonObject).getObject("user")?.getString("name") shouldBe "Alice"
+
+        // 👇 Final consistency check
+        clone.getObject("metadata")!!.getString("role") shouldBe "Developer"
+        // end-testfunctions
+    }
 }
 
