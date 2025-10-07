@@ -263,21 +263,6 @@ The code snippet below documents usage of these via the test cases in
     jsonObject.getString(SampleEnum.KEY.name) shouldBe "value"
   }
 
-  // Non-destructive update: returns a copy with the provided key/value set
-  @Test
-  fun set_addsOrReplacesEntry() {
-    val jsonObject = buildJsonObject {
-      put("existing", "value")
-    }
-    val updatedJsonObject = jsonObject.set("newKey" to JsonPrimitive("newValue"))
-    updatedJsonObject shouldBe JsonObject(
-      mapOf(
-        "existing" to JsonPrimitive("value"),
-        "newKey" to JsonPrimitive("newValue")
-      )
-    )
-  }
-
   // Non-destructive delete: returns a copy without the specified keys
   @Test
   fun deleteKeys_removesSpecifiedKeys() {
@@ -356,6 +341,12 @@ The code snippet below documents usage of these via the test cases in
     val map = mapOf("key1" to null, "key2" to "value")
     val jsonObject = map.toJsonElement()
     jsonObject shouldBe JsonObject(mapOf("key2" to JsonPrimitive("value")))
+  }
+
+  fun modify_jsonObject() {
+    val obj = buildJsonObject {}
+    obj.modify {}
+
   }
 }
 ```

@@ -112,8 +112,8 @@ kotlin {
 
         all {
             languageSettings {
-                languageVersion = "1.9"
-                apiVersion = "1.9"
+                languageVersion = "2.0"
+                apiVersion = "2.0"
 
             }
             languageSettings.optIn("kotlin.RequiresOptIn")

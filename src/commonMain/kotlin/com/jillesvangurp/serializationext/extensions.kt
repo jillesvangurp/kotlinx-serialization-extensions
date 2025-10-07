@@ -2,65 +2,55 @@
 
 package com.jillesvangurp.serializationext
 
+import kotlin.reflect.KProperty
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.double
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.longOrNull
 
-fun JsonObject?.getObject(name: String): JsonObject? =
-    this?.get(name)?.let { if (it is JsonNull) null else it as JsonObject }
-
-fun JsonObject?.getDouble(name: String): Double? =
-    this?.get(name)?.let {
-        if (it is JsonNull) null
-        else {
-            it as JsonPrimitive
-            it.double
-        }
+private fun JsonObject?.getNested(vararg names: String): JsonElement? {
+    var current: JsonElement? = this
+    for (name in names) {
+        current = (current as? JsonObject)?.get(name)
+        if (current == null || current is JsonNull) return null
     }
+    return current
+}
 
-fun JsonObject?.getArray(name: String): JsonArray? =
-    this?.get(name)?.let {
-        if (it is JsonNull) null
-        else {
-            it as JsonArray
-        }
-    }
+fun JsonObject?.getObject(vararg names: String): JsonObject? =
+    getNested(*names) as? JsonObject
 
-fun JsonObject?.getStringArray(name: String): List<String> =
-    this?.getArray(name)?.let { array ->
-        array.map { e ->
-            e as JsonPrimitive
-            e.content
-        }
-    } ?: listOf()
+fun JsonObject?.getDouble(vararg names: String): Double? =
+    (getNested(*names) as? JsonPrimitive)?.double
 
-fun JsonObject?.getDoubleArray(name: String): List<Double> =
-    this?.get(name)?.let {
-        it as JsonArray
-        it.map { e ->
-            e as JsonPrimitive
-            e.double
-        }
-    } ?: listOf()
+fun JsonObject?.getLong(vararg names: String): Long? =
+    (getNested(*names) as? JsonPrimitive)?.longOrNull
 
-fun JsonObject?.getString(name: String): String? =
-    this?.get(name)?.let {
-        if (it is JsonNull) null
-        else {
-            it as JsonPrimitive
-            it.content
-        }
-    }
+fun JsonObject?.getBooleanOrNull(vararg names: String): Boolean? =
+    (getNested(*names) as? JsonPrimitive)?.content?.toBooleanStrictOrNull()
+
+fun JsonObject?.getBoolean(vararg names: String): Boolean = getBooleanOrNull(names = names) ?: false
+
+fun JsonObject?.getArray(vararg names: String): JsonArray? =
+    getNested(*names) as? JsonArray
+
+fun JsonObject?.getStringArray(vararg names: String): List<String> =
+    (getArray(*names)?.mapNotNull { (it as? JsonPrimitive)?.content }) ?: listOf()
+
+fun JsonObject?.getDoubleArray(vararg names: String): List<Double> =
+    (getArray(*names)?.mapNotNull { (it as? JsonPrimitive)?.double }) ?: listOf()
+
+fun JsonObject?.getString(vararg names: String): String? =
+    (getNested(*names) as? JsonPrimitive)?.content
 
 fun JsonObject?.getString(enumValue: Enum<*>): String? = getString(enumValue.name)
-
-fun JsonObject?.set(vararg pairs: Pair<String, JsonElement>): JsonObject? {
-    if (this == null) return null
-    return pairs.fold(this.toMap()) { map, pair -> map + pair }.let { JsonObject(it) }
-}
+fun JsonObject?.getString(property: KProperty<*>): String? = getString(property.name)
 
 fun JsonObject?.deleteKeys(vararg keys: String): JsonObject? {
     if (this == null) return null
@@ -71,8 +61,28 @@ fun JsonObject?.deleteKeys(vararg keys: String): JsonObject? {
 fun List<*>.toJsonElement(): JsonArray = this.toJsonArray()
 fun Map<*, *>.toJsonElement(): JsonObject = this.toJsonObject()
 
-// FIXME add a version of foo["bar"] = e that calls toJsonElement on e where e:Any
-// FIXME do the same for JsonArray.add()
+/** Enables foo.add(e) with automatic conversion */
+fun JsonArray.add(value: Any?): JsonArray =
+    JsonArray(this + listOfNotNull(value.toJsonElement()))
+
+private fun deepCopy(element: JsonElement): JsonElement = when (element) {
+    is JsonObject -> JsonObject(element.mapValues { deepCopy(it.value) })
+    is JsonArray -> JsonArray(element.map { deepCopy(it) })
+    else -> element
+}
+
+fun JsonElement.clone(): JsonElement = deepCopy(this)
+
+fun JsonObject?.modify(builderAction: JsonObjectBuilder.() -> Unit): JsonObject {
+    if (this == null) return buildJsonObject(builderAction)
+
+    return buildJsonObject {
+        for ((key, value) in this@modify) {
+            put(key, deepCopy(value))
+        }
+        builderAction(this)
+    }
+}
 
 /** Generic: turn anything into a JsonElement */
 @Suppress("UNCHECKED_CAST")
