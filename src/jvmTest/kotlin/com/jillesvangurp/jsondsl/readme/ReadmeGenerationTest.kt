@@ -47,49 +47,80 @@ val readmeMd =
                 allowLongLines = true,
             )
             +"""
-                By default, Json() is too strict—throwing errors on missing keys, unknown keys, 
-                unexpected enum strings, or null where not expected. This behavior is not appropriate
-                for normal servers because it can break working client code with seemingly simple 
-                changes. And it's also not appropriate for client parsing code because any server 
-                changes might break previously working client code.
+                By default, Json() is very strict — throwing errors on missing keys, unknown keys, 
+                unexpected enum strings, or null where not expected.
                 
-                In other words, the defaults only are appropriate when you can tightly control 
-                both sides, but fails in more common systems where spec drift is normal, 
-                not all code uses Kotlin, or where client and server code evolve at different pace.                                    
-                The kotlinx.serialization defaults are probably wrong for common use in API clients, code for rendering server responses, or any similar use cases for the following reasons:
+                ## Strictness vs. best effort parsing
+                
+                This behavior can be too strict
+                for normal servers because it can break previously working client code with 
+                seemingly simple and conservative API
+                changes making requests that are otherwise still fine and processable. 
+                
+                Likewise, it's also not ideal for client parsing code to break over                                 
+                such server API changes. E.g. new enum values or fields could be ignored instead 
+                of breaking your code. This library configures defaults that result in a 
+                best effort attempt to parse json. It won't fail over trivial stuff like comments, 
+                trailing comments, etc.
+                
+                The defaults in kotlinx.serialization only are appropriate when you can tightly control 
+                both sides (parsing and serialization) and ideally enforce both sides using Kotlin, the same model classes, 
+                and the same strict parser configuration. Such a closed world assumption is 
+                conservative but not appropriate for everyone.               
+                                                    
+                The kotlinx.serialization defaults are probably not ideal for common use in API clients, 
+                code for rendering server responses, or any similar use cases for the following reasons:
                                 
-                - They expose you to forward/backward compatibility issues
-                - They make assumptions about the client parser capabilities/features that parses your json  
+                - They expose you to forward/backward compatibility issues. Any minor server API changes 
+                could break clients. You don't handle an optional/nullable field? Error. 
+                A new enum value appears that you can't handle? Error. You try to parse a nullable
+                 field that is no longer there (with a null value) -> Error.
+                - They make assumptions about the client parser capabilities/features that parses your json. 
+                Like having default values for class properties; or the same defaults.
                 - Encoding nulls means you generate a lot of bloated Json for sparsely 
-                populated objects with a lot of null values.                
+                populated objects with a lot of null values. The resulting JSON is still 100% valid 
+                JSON if you omit nulls. If your parsing code depends on nulls being explicitly there, 
+                you are just being overly strict with your parser and the resulting code is 
+                probably needlessly brittle.          
+                    
+                Being too strict can lead to preventable parser failures in more common/open eco systems where spec 
+                drift/evolution over time is expected and normal, not everyone uses Kotlin, or where client 
+                and server code evolve at a different pace.
+                                    
+                There are of course valid reasons to want to be more strict for compliance or 
+                security reasons. If so, configure your own defaults. But otherwise these defaults should 
+                be safe and sane for any API clients or servers written in Kotlin.
+                
+                In various discussions with people I've noticed that this is actually a very divisive topic. 
+                IMHO the defaults in kotlinx.serialization are actively harmful and wrong. That's 
+                just my opinion and I've met people that strongly disagree with that and get very 
+                upset over this.  
+                
+                If you fall on that side of the debate, this library is not for you and more power to you. 
+                But if you are on the fence, you might want to consider that there's a good reason that 
+                the options this library configures exist: there just is an enormous amount 
+                of stuff that would break without them. The JSON world is messy and you don't always
+                get to be strict about what people send you. Sometimes json just has trailing 
+                comments, missing keys for nullable properties, or comments. And some libraries 
+                happily serialize NaN into the JSON and you just need to deal with that when that happens.
+                
+                If you have found yourself repeatedly tweaking your Json configuration over such issues, 
+                this library is for you.          
             """.trimIndent()
 
         }
 
         section("Example usage") {
 
-            subSection("Using DEFAULT_JSON and DEFAULT_PRETTY_JSON") {
+            subSection("Using DEFAULT_JSON and DEFAULT_PRETTY_JSON to generate 100% valid JSON") {
 
                 +"""
-                    Because the defaults for Json in kotlinx.serialization are a bit problematic, this
-                    library provides alternatives with more appropriate settings.
-                    
-                    Particularly, it's designed to be lenient, not serialize nulls, 
-                    not fail on missing keys, enum values, etc.
-                    
-                    This is important for forward and backward compatibility. Also many languages 
-                    don't have default values for parameters so omitting default values is just
-                    weird and problematic for such clients; especially if they are non trivial. 
-                    
-                    A closed world assumption of everybody using kotlin and kotlinx.serialization 
-                    simply is not appropriate for either client code or server code. Making your 
-                    client reject minor changes in responses makes your client code brittle. Having 
-                    your server reject previously valid JSON after minor changes breaks 
-                    compatibility 
+                    The main difference between `DEFAULT_JSON` and `DEFAULT_PRETTY_JSON` is 
+                    that one pretty prints and the other one doesn't.
                 """.trimIndent()
                 example {
                     @Serializable
-                    data class Foo(val bar: String, val baz: String?=null)
+                    data class Foo(val bar: String, val baz: String?=null,val barr:String?="barrr")
 
                     val value = Foo("foo")
 
@@ -99,6 +130,25 @@ val readmeMd =
                 }.let {
                     mdCodeBlock(it.stdOut, type = "text")
                 }
+
+                +"""
+                    Note how it does not encode the baz property because it is null. That's intentional.
+                    If your parser breaks over missing null values, it's because it's being overly strict.
+                    
+                    Most Json serializers out there for other languages usually omit nulls. There 
+                    are few good reason to emit null values. Unless you have to support overly strict parsing 
+                    logic (e.g. some patch or merge logic might depend on this) that you need to keep happy. 
+                    Otherwise, you can save yourself the bandwidth. Which for some sparsely 
+                    populated JSON can add up to be substantial. I've never encountered any use 
+                    cases that require nulls (outside of brittle APIs 
+                    using kotlinx.serialization defaults).
+                    
+                    Also note how the barr value is there even though the property is nullable. 
+                    Not all other languages have default values. For example Java doesn't have those. 
+                    Emitting default values is both safe and shouldn't break any parser logic. 
+                    Building in assumptions about default value handling into your serialization 
+                    logic is a bad idea.
+                """.trimIndent()
             }
 
         }
@@ -109,7 +159,10 @@ val readmeMd =
                 a few open bugs:
                 
                 - [coerceInputValues prevent custom enum serializer to be used](https://github.com/Kotlin/kotlinx.serialization/issues/1947)
-                - [Unexpected MissingFieldException when decoding explicit null value from json for nullable enum](https://github.com/Kotlin/kotlinx.serialization/issues/2170)
+                - [Unexpected MissingFieldException when decoding explicit null value from json for nullable enum](https://github.com/Kotlin/kotlinx.serialization/issues/2170) (Closed)
+                - [coerceInputValues=true and explicitNulls=false should decode unknown enum value without default to null](https://github.com/Kotlin/kotlinx.serialization/issues/2586) (Closed)
+                
+                The closed issues are of course non issues if you keep your libraries up to date.
                 
                 Other considerations:
                 
@@ -131,7 +184,7 @@ val readmeMd =
 
         section("Extension Functions Overview") {
             +"""
-                In addition to sane defaults, I've also bundled a few extension functions in this 
+                In addition to the defaults above, I've also bundled a few extension functions in this 
                 library that make working with json elements a bit nicer. 
                 
                 These extensions provide convenience functions for working with `JsonObject`, 
@@ -141,8 +194,9 @@ val readmeMd =
                 
                 They also include generic conversion utilities (`toJsonElement`, `toJsonArray`, 
                 `toJsonObject`) that turn common Kotlin types—scalars, enums, maps, collections, 
-                sequences, and primitive arrays—into `JsonElement`s, making it easy to build or 
-                manipulate JSON structures idiomatically in Kotlin.                               
+                sequences, and primitive arrays—into `JsonElement`s, making it easier to build or 
+                manipulate JSON structures idiomatically in Kotlin without having to create 
+                model classes for everything.                               
                 
                 You can find the 
                 ${

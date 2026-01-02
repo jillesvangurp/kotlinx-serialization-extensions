@@ -1,14 +1,15 @@
 [![Process Pull Request](https://github.com/jillesvangurp/kotlinx-serialization-extensions/actions/workflows/pr_master.yaml/badge.svg)](https://github.com/jillesvangurp/kotlinx-serialization-extensions/actions/workflows/pr_master.yaml)
 
 This is a small library that fixes the default settings for `Json()` in `kotlinx.serialization` that should
-benefit anyone that uses that for e.g. use in servers or API clients.
+benefit anyone that uses that for e.g. use in servers or API clients and wants to prevent 'unnecessary' parsing errors rather than being very strict about what is acceptable as input. I'm aware this is not for everyone; but I'm in the camp of not wanting to deal with trivial parsing failures on what otherwise are perfectly acceptable and reasonable requests. I prefer using validation for the content rather than the syntax.
 
 I got tired of copy pasting these between essentially every project where I use `kotlinx.serialization`, so I created this library. This allows me to pull this in everywhere I need this and gives me a central place to manage these defaults.
 
 Features
-
-- DEFAULT_JSON and DEFAULT_PRETTY_JSON Json configurations with some sane defaults. The actual defaults in kotlinx.serialization are wrong for anyone looking to implement forward compatible APIs. 
-- Some extension functions on various things that make working with `JsonElement` in kotlinx a bit less painful. 
+- 
+- General principle of being strict about what we send being 100% valid JSON and flexible on what we parse and not fail over minor syntax issues.
+- DEFAULT_JSON and DEFAULT_PRETTY_JSON Json configurations with some sane defaults. The actual defaults in kotlinx.serialization are wrong for anyone looking to implement forward/backward compatible APIs or supporting an ecosystem where not everything is implemented in Kotlin (e.g. default value handling).
+- Misc. extension functions on various things that make working with `JsonElement`, `JsonObject`, `JsonArray`, and `JsonPrimitive` in kotlinx a bit easier and kotlin friendly. 
 
 See the documentation below for more details.
 
