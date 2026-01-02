@@ -112,8 +112,8 @@ kotlin {
 
         all {
             languageSettings {
-                languageVersion = "2.0"
-                apiVersion = "2.0"
+                languageVersion = "2.1"
+                apiVersion = "2.1"
 
             }
             languageSettings.optIn("kotlin.RequiresOptIn")
@@ -181,7 +181,8 @@ tasks.withType<Test> {
     systemProperties["junit.jupiter.execution.parallel.mode.classes.default"] = "concurrent"
     systemProperties["junit.jupiter.execution.parallel.config.strategy"] = "dynamic"
     // random order of test class execution
-    systemProperties["junit.jupiter.testclass.order.default"] = "org.junit.jupiter.api.ClassOrderer\$Random"
+    systemProperties["junit.jupiter.testclass.order.default"] =
+        $$"org.junit.jupiter.api.ClassOrderer$Random"
 
     testLogging.exceptionFormat = TestExceptionFormat.FULL
     testLogging.events = setOf(
